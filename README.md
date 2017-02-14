@@ -27,4 +27,29 @@ to install:
 * Update Sitecore references to match to your current version of Sitecore
   * Note that references to Tracker.Current.Context do not compile in 8.2 (and some other versions of Sitecore 8). These should be updated to Sitecore.Context.Session to allow the project to compile.
 * Deploy the files and compiled code to your website.
+* Update the Web.config (see sample Web.config for copy-paste values):
+  * Add entityFramework section definition at the top of the Web.config
+  ```
+  <section name="entityFramework" type="System.Data.Entity.Internal.ConfigFile.EntityFrameworkSection, EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" requirePermission="false" />
+  ```
+  * Add entityFramework section at the bottom of the Web.config
+  ```
+    <entityFramework>
+    <defaultConnectionFactory type="System.Data.Entity.Infrastructure.LocalDbConnectionFactory, EntityFramework">
+      <parameters>
+        <parameter value="mssqllocaldb" />
+      </parameters>
+    </defaultConnectionFactory>
+    <providers>
+      <provider invariantName="System.Data.SqlClient" type="System.Data.Entity.SqlServer.SqlProviderServices, EntityFramework.SqlServer" />
+    </providers>
+  </entityFramework>
+  ```
+  * Add assembly binding for System.IdentityModel.Tokens.Jwt:
+  ```
+      <dependentAssembly>
+        <assemblyIdentity name="System.IdentityModel.Tokens.Jwt" publicKeyToken="31bf3856ad364e35" culture="neutral" />
+        <bindingRedirect oldVersion="0.0.0.0-4.0.20622.1351" newVersion="4.0.20622.1351" />
+      </dependentAssembly>
+  ```
 * If there are any questions: please feel free to contact me.
