@@ -16,6 +16,8 @@ using Microsoft.Owin.Security.DataProtection;
 using Microsoft.Owin.Security.Notifications;
 using Microsoft.Owin.Security.WsFederation;
 using Owin;
+using Owin.Security.Saml;
+using SAML2.Config;
 using Sitecore;
 using Sitecore.Configuration;
 using Sitecore.Security.Accounts;
@@ -29,12 +31,83 @@ namespace SitecoreOwinFederator
     public class Startup
     {
         public void Configuration(IAppBuilder app)
-        {            
-            app.MapWhen(ctx => MapDomain(ctx, "multisite.local"), site =>
+        {
+			/*Multisite WSFederation example
+			app.MapWhen(ctx => MapDomain(ctx, "multisite.local"), site =>
+			{
+				site.SetDefaultSignInAsAuthenticationType(CookieAuthenticationDefaults.AuthenticationType);
+				site.UseCookieAuthentication(new CookieAuthenticationOptions
+				{
+					SlidingExpiration = false,
+					SessionStore = new SqlAuthSessionStore(new TicketDataFormat(new MachineKeyProtector())),
+					TicketDataFormat = new TicketDataFormat(new MachineKeyProtector()),
+					Provider = new CookieAuthenticationProvider
+					{
+						OnException = exception => HandleException(exception)
+					}
+				});
+
+				site.UseWsFederationAuthentication(new WsFederationAuthenticationOptions
+				{
+					UseTokenLifetime = true,
+					MetadataAddress = "http://claimsprovider.local/FederationMetadata",
+					Wtrealm = "urn:multisite",
+					Wreply = "http://multisite.local/login",
+				});
+			});
+
+			app.MapWhen(ctx => MapDomain(ctx, "multisite2.local"), site =>
+			{
+				site.SetDefaultSignInAsAuthenticationType(CookieAuthenticationDefaults.AuthenticationType);
+				site.UseCookieAuthentication(new CookieAuthenticationOptions
+				{
+					SlidingExpiration = false,
+					SessionStore = new SqlAuthSessionStore(new TicketDataFormat(new MachineKeyProtector())),
+					TicketDataFormat = new TicketDataFormat(new MachineKeyProtector()),
+					Provider = new CookieAuthenticationProvider
+					{
+						OnException = exception => HandleException(exception)
+					}
+				});
+
+				site.UseWsFederationAuthentication(new WsFederationAuthenticationOptions
+				{
+					MetadataAddress = "http://claimsprovider.local/FederationMetadata",
+					Wtrealm = "urn:multisite2",
+					Wreply = "http://multisite2.local/login",
+				});
+			});
+
+			app.MapWhen(ctx => MapDomain(ctx, "multisite3.local"), site =>
+			{
+				site.SetDefaultSignInAsAuthenticationType(CookieAuthenticationDefaults.AuthenticationType);
+				site.UseCookieAuthentication(new CookieAuthenticationOptions
+				{
+					SlidingExpiration = false,
+					SessionStore = new SqlAuthSessionStore(new TicketDataFormat(new MachineKeyProtector())),
+					TicketDataFormat = new TicketDataFormat(new MachineKeyProtector()),
+					Provider = new CookieAuthenticationProvider
+					{
+
+						OnException = exception => HandleException(exception)
+					}
+				});
+
+				site.UseWsFederationAuthentication(new WsFederationAuthenticationOptions
+				{
+					MetadataAddress = "https://sitecore.accesscontrol.windows.net/FederationMetadata/2007-06/FederationMetadata.xml",
+					Wtrealm = "urn:multisite3:local",
+				});
+			});*/
+
+			//SAML Example
+			app.MapWhen(ctx => MapDomain(ctx, "sc82u2owin"), site =>
             {
                 site.SetDefaultSignInAsAuthenticationType(CookieAuthenticationDefaults.AuthenticationType);
                 site.UseCookieAuthentication(new CookieAuthenticationOptions
                 {
+					AuthenticationType = "SAML2",
+					AuthenticationMode = AuthenticationMode.Active,
                     SlidingExpiration = false,
                     SessionStore = new SqlAuthSessionStore(new TicketDataFormat(new MachineKeyProtector())),
                     TicketDataFormat = new TicketDataFormat(new MachineKeyProtector()),    
@@ -44,56 +117,10 @@ namespace SitecoreOwinFederator
                     }                
                 });
 
-                site.UseWsFederationAuthentication(new WsFederationAuthenticationOptions
-                {
-                    UseTokenLifetime = true,                    
-                    MetadataAddress = "http://claimsprovider.local/FederationMetadata",
-                    Wtrealm = "urn:multisite",
-                    Wreply = "http://multisite.local/login",
-                });
-            });
-
-            app.MapWhen(ctx => MapDomain(ctx, "multisite2.local"), site =>
-            {
-                site.SetDefaultSignInAsAuthenticationType(CookieAuthenticationDefaults.AuthenticationType);
-                site.UseCookieAuthentication(new CookieAuthenticationOptions
-                {
-                    SlidingExpiration = false,
-                    SessionStore = new SqlAuthSessionStore(new TicketDataFormat(new MachineKeyProtector())),
-                    TicketDataFormat = new TicketDataFormat(new MachineKeyProtector()),
-                    Provider = new CookieAuthenticationProvider
-                    {
-                        OnException = exception => HandleException(exception)
-                    }
-                });
-
-                site.UseWsFederationAuthentication(new WsFederationAuthenticationOptions
-                {
-                    MetadataAddress = "http://claimsprovider.local/FederationMetadata",
-                    Wtrealm = "urn:multisite2",
-                    Wreply = "http://multisite2.local/login",
-                });
-            });
-
-            app.MapWhen(ctx => MapDomain(ctx, "multisite3.local"), site =>
-            {
-                site.SetDefaultSignInAsAuthenticationType(CookieAuthenticationDefaults.AuthenticationType);
-                site.UseCookieAuthentication(new CookieAuthenticationOptions
-                {
-                    SlidingExpiration = false,
-                    SessionStore = new SqlAuthSessionStore(new TicketDataFormat(new MachineKeyProtector())),
-                    TicketDataFormat = new TicketDataFormat(new MachineKeyProtector()),
-                    Provider = new CookieAuthenticationProvider
-                    {
-                        
-                        OnException = exception => HandleException(exception)
-                    }
-                });
-
-                site.UseWsFederationAuthentication(new WsFederationAuthenticationOptions
-                {
-                    MetadataAddress = "https://sitecore.accesscontrol.windows.net/FederationMetadata/2007-06/FederationMetadata.xml",
-                    Wtrealm = "urn:multisite3:local",                    
+				site.UseSamlAuthentication(new SamlAuthenticationOptions
+				{
+					Configuration = GetSamlConfiguration(),
+					RedirectAfterLogin = "/login"
                 });
             });
 
@@ -116,23 +143,45 @@ namespace SitecoreOwinFederator
             var ex = exception;
         }
 
-        
+		private Saml2Configuration GetSamlConfiguration()
+		{
+			var config = new Saml2Configuration
+			{
+				ServiceProvider = new ServiceProvider
+				{
+					Server = "https://sc82u2owin",
+					Id = "https://sc82u2owin/shibboleth",
+				},
+				AllowedAudienceUris = new System.Collections.Generic.List<Uri>(new[] { new Uri("https://sc82u2owin") })
+			};
 
-        //private WsFederationAuthenticationOptions GetAuthenticationOptions(KeyValuePair<string, FederationConfiguration> node)
-        //{
-        //    return new WsFederationAuthenticationOptions
-        //    {
-        //        MetadataAddress = "http://claimsprovider.local/FederationMetadata",
-        //        Wtrealm = node.Value.Realm,
-        //        Wreply = "http://" + node.Value.Hostname + "/sample item",
-        //        Notifications = new WsFederationAuthenticationNotifications
-        //        {
-        //            SecurityTokenValidated = context => LoginSitecoreUser(context)
-        //        }
-        //    };
-        //}
+			config.ServiceProvider.Endpoints.AddRange(new[] {
+				new ServiceProviderEndpoint { Type = EndpointType.SignOn, LocalPath="/shibboleth.sso/Login", RedirectUrl ="/Login" },
+				new ServiceProviderEndpoint { Type = EndpointType.Logout, LocalPath = "/shibboleth.sso/Logout", RedirectUrl = "/Logout" },
+				new ServiceProviderEndpoint { Type = EndpointType.Metadata, LocalPath = "/shibboleth.sso/Status" }
+			});
+			config.LoggingFactoryType = "SAML2.Logging.DebugLoggerFactory";
+			config.IdentityProviders.AddByMetadataDirectory(@"C:\opt\shibboleth-sp\etc\shibboleth\metadata");
 
-        private bool MapDomain(IOwinContext ctx, string hostname)
+			return config;
+		}
+
+
+		//private WsFederationAuthenticationOptions GetAuthenticationOptions(KeyValuePair<string, FederationConfiguration> node)
+		//{
+		//    return new WsFederationAuthenticationOptions
+		//    {
+		//        MetadataAddress = "http://claimsprovider.local/FederationMetadata",
+		//        Wtrealm = node.Value.Realm,
+		//        Wreply = "http://" + node.Value.Hostname + "/sample item",
+		//        Notifications = new WsFederationAuthenticationNotifications
+		//        {
+		//            SecurityTokenValidated = context => LoginSitecoreUser(context)
+		//        }
+		//    };
+		//}
+
+		private bool MapDomain(IOwinContext ctx, string hostname)
         {
             if (ctx.Request.Headers.Get("Host").Equals(hostname))
                 return true;
